@@ -26,7 +26,7 @@ print("Waiting for connection...")
 client_socket, address = server_socket.accept()
 print("Connected to {}".format(address))
 
-
+# Main functioning loop
 try:
     while True:
        
@@ -58,6 +58,7 @@ finally:
     client_socket.close()
     server_socket.close()
 
+# TODO: Add this loop to main loop, as well as making the color sensor detection
 # while True:
 #     ev3.speaker.beep(frequency=500,duration=500)
 #     if touch.pressed():
