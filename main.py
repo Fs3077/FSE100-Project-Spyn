@@ -1,5 +1,4 @@
 #!/usr/bin/env pybricks-micropython
-# main.py
 import socket
 import sys
 from pybricks.hubs import EV3Brick
@@ -8,93 +7,107 @@ from pybricks.parameters import Port, Color
 from pybricks.robotics import DriveBase
 from pybricks.tools import wait
 
-# Initialize EV3 components
 ev3 = EV3Brick()
 left_motor = Motor(Port.C)
 right_motor = Motor(Port.D)
 touch = TouchSensor(Port.S1)
 colorSens = ColorSensor(Port.S2)
-# weapon = Motor(Port.A)
 robot = DriveBase(left_motor, right_motor, wheel_diameter=55.5, axle_track=104)
 ev3.speaker.set_volume(10)
 
-greentriggered = False
-redtriggered = False
-bluetriggered = False
 
-# Server configuration
+CONFIRM_COUNT = 5
+current_candidate = None
+candidate_count = 0
+triggered = {Color.RED: False, Color.GREEN: False, Color.BLUE: False}      
+
+def classify():
+    c = colorSens.color()
+    if c == Color.BLUE:
+        r, g, b = colorSens.rgb()
+        if not (b > r * 1.5 and b > g * 1.1):
+            return None
+        return Color.BLUE
+    if c in (Color.RED, Color.GREEN):
+        return c
+    return None
+
+def handle_color(c):
+    robot.stop()
+    ev3.speaker.beep(frequency=0, duration=0)
+    if c == Color.RED:
+        print("Red detected")
+        wait(1000)
+    elif c == Color.BLUE:
+        print("Blue detected")
+        ev3.speaker.beep(frequency=1000, duration=500)
+        wait(100)
+        ev3.speaker.beep(frequency=1000, duration=500)
+        wait(500)
+    elif c == Color.GREEN:
+        print("Green detected")
+        for _ in range(3):
+            ev3.speaker.beep(frequency=1000, duration=500)
+            wait(100)
+        wait(400)
+    ev3.speaker.beep(frequency=500, duration=-1)
+
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind(("0.0.0.0", 12345))
 server_socket.listen(1)
 print("Waiting for connection...")
 client_socket, address = server_socket.accept()
 print("Connected to {}".format(address))
+client_socket.setblocking(False)
 
 ev3.speaker.beep(frequency=500, duration=-1)
 
+buf = ""
 try:
     while True:
+        try:
+            data = client_socket.recv(16)
+            if data == b"":          
+                break
+            if data:                 
+                buf += data.decode()
+        except OSError:
+            pass                     
 
-        command = client_socket.recv(2).decode()
         
-        color = colorSens.color()
+        while len(buf) >= 2:
+            key, action = buf[0], buf[1]
+            buf = buf[2:]
+            if action == "d":
+                if key == "w":
+                    robot.drive(900, 0)
+                elif key == "s":
+                    robot.drive(-900, 0)
+                elif key == "a":
+                    robot.drive(0, -450)
+                elif key == "d":
+                    robot.drive(0, 450)
+            elif action == "u":
+                if key in ("w", "a", "s", "d"):
+                    robot.stop()
 
-        if color == Color.RED and not redtriggered:
-            print("Red detected")
-            redtriggered = True
-            ev3.speaker.beep(frequency=0,duration=0)
-            robot.stop()
-            wait(1000)
-            ev3.speaker.beep(frequency=500, duration=-1)
+                
+        seen = classify()
+        if seen == current_candidate:
+            candidate_count += 1
+        else:
+            current_candidate = seen
+            candidate_count = 1
 
-        if color == Color.BLUE and not bluetriggered:   
-            bluetriggered = True   
-            print("Blue detected")      
-            robot.stop()
-            ev3.speaker.beep(frequency=0,duration=0)
-            ev3.speaker.beep(frequency=1000, duration=500)
-            wait(100)
-            ev3.speaker.beep(frequency=1000, duration=500)
-            wait(500)
-            ev3.speaker.beep(frequency=500, duration=-1)
+        if (seen is not None and candidate_count >= CONFIRM_COUNT and not triggered[seen]):
+            triggered[seen] = True
+            handle_color(seen)
 
-        if color == Color.GREEN and not greentriggered:
-            greentriggered = True
-            print("Green detected")
-            robot.stop()
-            ev3.speaker.beep(frequency=0,duration=0)
-            ev3.speaker.beep(frequency=1000, duration=500)
-            wait(100)
-            ev3.speaker.beep(frequency=1000, duration=500)
-            wait(100)
-            ev3.speaker.beep(frequency=1000, duration=500)
-            wait(500)
-            ev3.speaker.beep(frequency=500, duration=-1)
-
-        # EV3 Connections Code
         if touch.pressed():
-            client_socket.close()
-            server_socket.close() 
-            sys.exit
+            break
 
-        key, action = command[0], command[1]
-        if action == "d":  # Key press
-            if key == "w":
-                robot.drive(900, 0)  # Move forward
-            elif key == "s":
-                robot.drive(-900, 0)  # Move backward
-            elif key == "a":
-                robot.drive(0, -450)  # Turn left
-            elif key == "d":
-                robot.drive(0, 450)  # Turn right
-            #elif key == "f":
-            #    weapon.run(1000)  # Spin weapon motor at max speed
-        elif action == "u":  # Key release
-            if key in ("w", "a", "s", "d"):
-                robot.stop()  # Stop the robot on key release
-            #elif key == "f":
-            #    weapon.stop()  # Stop the weapon motor on key release
-
+        wait(10)
 finally:
+    robot.stop()
     client_socket.close()
     server_socket.close()
