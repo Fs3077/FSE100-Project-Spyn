@@ -1,12 +1,12 @@
 #!/usr/bin/env pybricks-micropython
 # main.py
 import socket
+import sys
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import Motor, TouchSensor, ColorSensor
 from pybricks.parameters import Port, Color
 from pybricks.robotics import DriveBase
 from pybricks.tools import wait
-import sys
 
 # Initialize EV3 components
 ev3 = EV3Brick()
@@ -32,34 +32,37 @@ print("Connected to {}".format(address))
 
 ev3.speaker.beep(frequency=500, duration=-1)
 
-
 try:
     while True:
 
         command = client_socket.recv(2).decode()
-        # if not command:
-        #    break
         
         color = colorSens.color()
+
         if color == Color.RED and not redtriggered:
+            print("Red detected")
             redtriggered = True
+            ev3.speaker.beep(frequency=0,duration=0)
             robot.stop()
             wait(1000)
-            
+            ev3.speaker.beep(frequency=500, duration=-1)
 
         if color == Color.BLUE and not bluetriggered:   
-            bluetriggered = True         
+            bluetriggered = True   
+            print("Blue detected")      
             robot.stop()
+            ev3.speaker.beep(frequency=0,duration=0)
             ev3.speaker.beep(frequency=1000, duration=500)
             wait(100)
             ev3.speaker.beep(frequency=1000, duration=500)
             wait(500)
             ev3.speaker.beep(frequency=500, duration=-1)
-            
 
         if color == Color.GREEN and not greentriggered:
             greentriggered = True
+            print("Green detected")
             robot.stop()
+            ev3.speaker.beep(frequency=0,duration=0)
             ev3.speaker.beep(frequency=1000, duration=500)
             wait(100)
             ev3.speaker.beep(frequency=1000, duration=500)
@@ -92,11 +95,6 @@ try:
             #elif key == "f":
             #    weapon.stop()  # Stop the weapon motor on key release
 
-        
-
-
 finally:
     client_socket.close()
     server_socket.close()
-
-
