@@ -22,16 +22,15 @@ candidate_count = 0
 triggered = {Color.RED: False, Color.GREEN: False, Color.BLUE: False}      
 
 def classify():
-    c = colorSens.color()
-    if c == Color.BLUE:
-        r, g, b = colorSens.rgb()
-        if not (b > r * 1.5 and b > g * 1.1):
-            return None
-        return Color.BLUE
-    if c in (Color.RED, Color.GREEN):
-        return c
-    return None
+    r, g, b = colorSens.rgb()
 
+    if r > 25 and r > g * 2 and r > b * 2:
+        return Color.RED
+    if b > 20 and b > g * 1.4 and b > r * 2:
+        return Color.BLUE
+    if g > 20 and g > b * 1.05 and g > r * 2:
+        return Color.GREEN
+    
 def handle_color(c):
     robot.stop()
     ev3.speaker.beep(frequency=0, duration=0)
@@ -90,7 +89,6 @@ try:
             elif action == "u":
                 if key in ("w", "a", "s", "d"):
                     robot.stop()
-
                 
         seen = classify()
         if seen == current_candidate:
