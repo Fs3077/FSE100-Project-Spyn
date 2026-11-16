@@ -1,4 +1,11 @@
 #!/usr/bin/env pybricks-micropython
+
+# This is the main code for the EV3, haandles basically everything except the manual driving.
+# TODO: Add ultrasonic sensor detection, autonomous driving, and lift motor functionality.
+
+# For those reading, PLEASE do not push any changes to github without reviewing them first, especially with AI code!!
+# I really don't want to have to hunt a bug through 5 different pushes to main because an AI made a mistake.
+
 import socket
 import sys
 from pybricks.hubs import EV3Brick
@@ -7,6 +14,8 @@ from pybricks.parameters import Port, Color
 from pybricks.robotics import DriveBase
 from pybricks.tools import wait
 
+
+# Setup EV3 brick and devices
 ev3 = EV3Brick()
 left_motor = Motor(Port.C)
 right_motor = Motor(Port.D)
@@ -15,12 +24,15 @@ colorSens = ColorSensor(Port.S2)
 robot = DriveBase(left_motor, right_motor, wheel_diameter=55.5, axle_track=104)
 ev3.speaker.set_volume(10)
 
-
+# Color detection constants and variables
 CONFIRM_COUNT = 5
 current_candidate = None
 candidate_count = 0
 triggered = {Color.RED: False, Color.GREEN: False, Color.BLUE: False}      
 
+# Color detection 1, defines the threshold for R G and B.
+# This is kinda complicated but it basically just checks using rgb rather than Color.X that is setup in the ev3 code.
+# If this needs to be changed, the multipliers are what defines the threshold for each color.
 def classify():
     r, g, b = colorSens.rgb()
 
@@ -30,7 +42,8 @@ def classify():
         return Color.BLUE
     if g > 20 and g > b * 1.05 and g > r * 2:
         return Color.GREEN
-    
+
+# Color detection 2, handles color when its detected and beeps. The duration=-1 makes it return to the constant tone.
 def handle_color(c):
     robot.stop()
     ev3.speaker.beep(frequency=0, duration=0)
@@ -51,6 +64,7 @@ def handle_color(c):
         wait(400)
     ev3.speaker.beep(frequency=500, duration=-1)
 
+# Server setup, this was in the provided code rather than being custom.
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind(("0.0.0.0", 12345))
 server_socket.listen(1)
@@ -59,8 +73,11 @@ client_socket, address = server_socket.accept()
 print("Connected to {}".format(address))
 client_socket.setblocking(False)
 
+# Default beep that plays when the robot is running.
 ev3.speaker.beep(frequency=500, duration=-1)
 
+# Driving function with an added buffer to fix color detection not running unless driving.
+# Don't really touch this section unless you know what you're doing.
 buf = ""
 try:
     while True:
@@ -101,6 +118,7 @@ try:
             triggered[seen] = True
             handle_color(seen)
 
+        # Deprecated touch function, no longer used.
         if touch.pressed():
             break
 

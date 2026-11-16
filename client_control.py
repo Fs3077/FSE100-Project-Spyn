@@ -1,4 +1,8 @@
 # client_control.py
+
+# Handles manual driving.
+# Please don't touch this code, it's not anything I modified.
+
 import socket
 from pynput import keyboard
 
