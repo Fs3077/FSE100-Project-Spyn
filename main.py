@@ -9,7 +9,7 @@
 import socket
 import sys
 from pybricks.hubs import EV3Brick
-from pybricks.ev3devices import Motor, TouchSensor, ColorSensor
+from pybricks.ev3devices import Motor, UltrasonicSensor, ColorSensor
 from pybricks.parameters import Port, Color
 from pybricks.robotics import DriveBase
 from pybricks.tools import wait
@@ -19,7 +19,7 @@ from pybricks.tools import wait
 ev3 = EV3Brick()
 left_motor = Motor(Port.C)
 right_motor = Motor(Port.D)
-touch = TouchSensor(Port.S1)
+ultrasonic = UltrasonicSensor(Port.S1)
 colorSens = ColorSensor(Port.S2)
 robot = DriveBase(left_motor, right_motor, wheel_diameter=55.5, axle_track=104)
 ev3.speaker.set_volume(10)
@@ -30,6 +30,8 @@ current_candidate = None
 candidate_count = 0
 triggered = {Color.RED: False, Color.GREEN: False, Color.BLUE: False}      
 
+# Wall detection distance
+DISTANCE = 150
 # Color detection 1, defines the threshold for R G and B.
 # This is kinda complicated but it basically just checks using rgb rather than Color.X that is setup in the ev3 code.
 # If this needs to be changed, the multipliers are what defines the threshold for each color.
@@ -63,6 +65,28 @@ def handle_color(c):
             wait(100)
         wait(400)
     ev3.speaker.beep(frequency=500, duration=-1)
+
+# Distance detection, stops and checks both sides when detecting a wall then turn to the side with the greatest distance
+def navigate_maze():
+    distance = ultrasonic.distance()
+    if distance > DISTANCE:
+        robot.drive(900, 0)
+    else:
+        robot.stop()
+        robot.turn(-90)
+        wait(200)
+        left_distance = ultrasonic.distance()
+        robot.turn(180)
+        wait(200)
+        right_distance = ultrasonic.distance()
+        robot.turn(-90)
+        if left_distance <= DISTANCE && right_distance <= DISTANCE:
+            robot.turn(180);
+        elif left_distance > right_distance:
+            robot.turn(-90)
+        else:
+            robot.turn(90)
+        robot.drive(900, 0)
 
 # Server setup, this was in the provided code rather than being custom.
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
