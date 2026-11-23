@@ -164,8 +164,7 @@ try:
 
         if (seen is not None and candidate_count >= CONFIRM_COUNT and not triggered[seen]):
             triggered[seen] = True
-            while True:
-                handle_color(seen)
+            handle_color(seen)
 
         wait(10)
 finally:
