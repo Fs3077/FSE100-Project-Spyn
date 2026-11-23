@@ -1,7 +1,7 @@
 #!/usr/bin/env pybricks-micropython
 
 # This is the main code for the EV3, haandles basically everything except the manual driving.
-# TODO: autonomous driving, lift motor functionality.
+# TODO: Add autonomous driving that works with both the color and ultrasonic detection, as well as lift motor capability
 
 # For those reading, PLEASE do not push any changes to github without reviewing them first, especially with AI code!!
 # I really don't want to have to hunt a bug through 5 different pushes to main because an AI made a mistake.
@@ -17,8 +17,9 @@ from pybricks.tools import wait
 
 # Setup EV3 brick and devices
 ev3 = EV3Brick()
+lift_motor = Motor(Port.A)
 left_motor = Motor(Port.C)
-right_motor = Motor(Port.D)
+right_motor = Motor(Port.B)
 ultrasonic = UltrasonicSensor(Port.S1)
 colorSens = ColorSensor(Port.S2)
 robot = DriveBase(left_motor, right_motor, wheel_diameter=55.5, axle_track=104)
@@ -52,13 +53,16 @@ def handle_color(c):
     if c == Color.RED:
         print("Red detected")
         wait(1000)
+        # Implement code to stop the robot entirely
     elif c == Color.BLUE:
         print("Blue detected")
         ev3.speaker.beep(frequency=1000, duration=500)
         wait(100)
         ev3.speaker.beep(frequency=1000, duration=500)
         wait(500)
+        # End autonomous driving and switch to manual, then off of autonomous after blue is no longer detected
     elif c == Color.GREEN:
+        # Start autonomous driving
         print("Green detected")
         for _ in range(3):
             ev3.speaker.beep(frequency=1000, duration=500)
