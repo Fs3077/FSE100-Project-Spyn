@@ -45,6 +45,16 @@ def classify():
         return Color.BLUE
     if g > 20 and g > b * 1.05 and g > r * 2:
         return Color.GREEN
+    
+def lift_up():
+    lift_motor.run(400)
+
+def lift_down():
+    lift_motor.run(-400)
+
+def lift_stop():
+    lfit_motor.stop()
+
 
 # Color detection 2, handles color when its detected and beeps. The duration=-1 makes it return to the constant tone.
 def handle_color(c):
@@ -122,6 +132,16 @@ try:
         while len(buf) >= 2:
             key, action = buf[0], buf[1]
             buf = buf[2:]
+            if key == "e":
+                if action == "d":
+                    lift_up()
+                elif action == "u":
+                    lift_stop()
+            elif key == "q":
+                if action == "d":
+                    lift_down()
+                elif action == "u":
+                    lift_stop()
             if action == "d":
                 if key == "w":
                     robot.drive(900, 0)
@@ -144,7 +164,8 @@ try:
 
         if (seen is not None and candidate_count >= CONFIRM_COUNT and not triggered[seen]):
             triggered[seen] = True
-            handle_color(seen)
+            while True:
+                handle_color(seen)
 
         wait(10)
 finally:
