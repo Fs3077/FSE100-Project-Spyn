@@ -132,16 +132,6 @@ try:
         while len(buf) >= 2:
             key, action = buf[0], buf[1]
             buf = buf[2:]
-            if key == "e":
-                if action == "d":
-                    lift_up()
-                elif action == "u":
-                    lift_stop()
-            elif key == "q":
-                if action == "d":
-                    lift_down()
-                elif action == "u":
-                    lift_stop()
             if action == "d":
                 if key == "w":
                     robot.drive(900, 0)
@@ -151,9 +141,15 @@ try:
                     robot.drive(0, -450)
                 elif key == "d":
                     robot.drive(0, 450)
+                elif key == "e":
+                    lift_up()
+                elif key == "r":
+                    lift_down()
             elif action == "u":
-                if key in ("w", "a", "s", "d"):
+                if key in ("w", "a", "s", "d", "e", "r"):
+                    lift_stop()
                     robot.stop()
+                    
                 
         seen = classify()
         if seen == current_candidate:
