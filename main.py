@@ -1,7 +1,7 @@
 #!/usr/bin/env pybricks-micropython
 
 # This is the main code for the EV3, haandles basically everything except the manual driving.
-# TODO: Add ultrasonic sensor detection, autonomous driving, and lift motor functionality.
+# TODO: autonomous driving, lift motor functionality.
 
 # For those reading, PLEASE do not push any changes to github without reviewing them first, especially with AI code!!
 # I really don't want to have to hunt a bug through 5 different pushes to main because an AI made a mistake.
