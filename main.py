@@ -80,8 +80,8 @@ def navigate_maze():
         wait(200)
         right_distance = ultrasonic.distance()
         robot.turn(-90)
-        if left_distance <= DISTANCE && right_distance <= DISTANCE:
-            robot.turn(180);
+        if left_distance <= DISTANCE and right_distance <= DISTANCE:
+            robot.turn(180)
         elif left_distance > right_distance:
             robot.turn(-90)
         else:
@@ -141,10 +141,6 @@ try:
         if (seen is not None and candidate_count >= CONFIRM_COUNT and not triggered[seen]):
             triggered[seen] = True
             handle_color(seen)
-
-        # Deprecated touch function, no longer used.
-        if touch.pressed():
-            break
 
         wait(10)
 finally:
