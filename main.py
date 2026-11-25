@@ -29,10 +29,20 @@ ev3.speaker.set_volume(10)
 CONFIRM_COUNT = 5
 current_candidate = None
 candidate_count = 0
-triggered = {Color.RED: False, Color.GREEN: False, Color.BLUE: False}      
+triggered = {Color.RED: False, Color.GREEN: False, Color.BLUE: False, Color.YELLOW: False}      
 
 # Wall detection distance
-DISTANCE = 150
+DISTANCE = 250
+# All boolean variables to determine when the bot is in manual or autonomous mode
+wait_green = True
+to_pickup = False
+pick_up = False
+to_drop_off = False
+drop_off = False
+# Prevents the bot from repeatedly stopping at the same red stop sign
+red_latched = False
+# End the program when the bot is at dropoff
+done = False
 # Color detection 1, defines the threshold for R G and B.
 # This is kinda complicated but it basically just checks using rgb rather than Color.X that is setup in the ev3 code.
 # If this needs to be changed, the multipliers are what defines the threshold for each color.
@@ -45,6 +55,8 @@ def classify():
         return Color.BLUE
     if g > 20 and g > b * 1.05 and g > r * 2:
         return Color.GREEN
+    if r > 25 and g > 20 and r > b * 1.5 and g > b * 1.5:
+        return Color.YELLOW
     
 def lift_up():
     lift_motor.run(400)
@@ -53,7 +65,7 @@ def lift_down():
     lift_motor.run(-400)
 
 def lift_stop():
-    lfit_motor.stop()
+    lift_motor.stop()
 
 
 # Color detection 2, handles color when its detected and beeps. The duration=-1 makes it return to the constant tone.
@@ -118,7 +130,7 @@ ev3.speaker.beep(frequency=500, duration=-1)
 # Don't really touch this section unless you know what you're doing.
 buf = ""
 try:
-    while True:
+    while not done:
         try:
             data = client_socket.recv(16)
             if data == b"":          
@@ -132,23 +144,36 @@ try:
         while len(buf) >= 2:
             key, action = buf[0], buf[1]
             buf = buf[2:]
-            if action == "d":
-                if key == "w":
-                    robot.drive(900, 0)
-                elif key == "s":
-                    robot.drive(-900, 0)
-                elif key == "a":
-                    robot.drive(0, -450)
-                elif key == "d":
-                    robot.drive(0, 450)
-                elif key == "e":
-                    lift_up()
-                elif key == "r":
-                    lift_down()
-            elif action == "u":
-                if key in ("w", "a", "s", "d", "e", "r"):
-                    lift_stop()
-                    robot.stop()
+            if pick_up or drop_off:
+                if action == "d":
+                    if key == "w":
+                        robot.drive(900, 0)
+                    elif key == "s":
+                        robot.drive(-900, 0)
+                    elif key == "a":
+                        robot.drive(0, -450)
+                    elif key == "d":
+                        robot.drive(0, 450)
+                    elif key == "e":
+                        lift_up()
+                    elif key == "r":
+                        lift_down()
+                    elif key == "f": # The f button turns the bot into autonomous mode 
+                        robot.stop()
+                        lift_stop()            
+                        if pick_up:
+                            print("Pickup finished!")
+                            pick_up = False
+                            to_drop_off = True
+                        elif drop_off:
+                            print("Drop-off finished!")
+                            drop_off = False
+                            done = True
+                elif action == "u":
+                    if key in ("w", "a", "s", "d"):
+                        robot.stop()
+                    elif key in ("e", "r"):
+                        lift_stop()
                     
                 
         seen = classify()
@@ -158,12 +183,61 @@ try:
             current_candidate = seen
             candidate_count = 1
 
-        if (seen is not None and candidate_count >= CONFIRM_COUNT and not triggered[seen]):
-            triggered[seen] = True
-            handle_color(seen)
+         # WAIT FOR GREEN TO START
+        if (
+            wait_green
+            and seen == Color.GREEN
+            and candidate_count >= CONFIRM_COUNT
+        ):
+            wait_green = False
+            to_pickup = True
+
+            ev3.speaker.beep(frequency=1000, duration=500)
+
+        # RED STOP SIGNS
+        if (
+            (to_pickup or to_drop_off)
+            and seen == Color.RED
+            and candidate_count >= CONFIRM_COUNT
+            and not red_latched
+        ):
+            robot.stop()
+            wait(1000)
+            red_latched = True
+        if seen != Color.RED:
+            red_latched = False
+
+        # BLUE PICKUP LOCATION
+        if (
+            to_pickup
+            and seen == Color.BLUE
+            and candidate_count >= CONFIRM_COUNT
+        ):
+            robot.stop()
+            lift_stop()
+            to_pickup = False
+            pick_up = True
+            ev3.speaker.beep(frequency=1000, duration=500)
+
+        # YELLOW DROP-OFF LOCATION
+        elif (
+            to_drop_off
+            and seen == Color.YELLOW
+            and candidate_count >= CONFIRM_COUNT
+        ):
+            robot.stop()
+            lift_stop()
+            to_drop_off = False
+            drop_off = True
+            ev3.speaker.beep(frequency=1000, duration=500)
+
+        # AUTONOMOUS NAVIGATION
+        if to_pickup or to_drop_off:
+            navigate_maze()
 
         wait(10)
 finally:
     robot.stop()
+    lift_stop()
     client_socket.close()
     server_socket.close()
