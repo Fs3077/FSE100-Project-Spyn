@@ -9,7 +9,7 @@
 import socket
 import sys
 from pybricks.hubs import EV3Brick
-from pybricks.ev3devices import Motor, UltrasonicSensor, ColorSensor
+from pybricks.ev3devices import Motor, UltrasonicSensor, ColorSensor, TouchSensor
 from pybricks.parameters import Port, Color
 from pybricks.robotics import DriveBase
 from pybricks.tools import wait
@@ -21,6 +21,7 @@ lift_motor = Motor(Port.A)
 left_motor = Motor(Port.C)
 right_motor = Motor(Port.B)
 ultrasonic = UltrasonicSensor(Port.S1)
+touchSensor = TouchSensor(Port.S3)
 colorSens = ColorSensor(Port.S2)
 robot = DriveBase(left_motor, right_motor, wheel_diameter=55.5, axle_track=104)
 ev3.speaker.set_volume(10)
@@ -92,27 +93,18 @@ def handle_color(c):
         wait(400)
     ev3.speaker.beep(frequency=500, duration=-1)
 
-# Distance detection, stops and checks both sides when detecting a wall then turn to the side with the greatest distance
+# Distance detection
 def navigate_maze():
     distance = ultrasonic.distance()
-    if distance > DISTANCE:
+    if DISTANCE > distance:
         robot.drive(900, 0)
     else:
-        robot.stop()
+        wait(100)
         robot.turn(-90)
-        wait(200)
-        left_distance = ultrasonic.distance()
-        robot.turn(180)
-        wait(200)
-        right_distance = ultrasonic.distance()
-        robot.turn(-90)
-        if left_distance <= DISTANCE and right_distance <= DISTANCE:
-            robot.turn(180)
-        elif left_distance > right_distance:
-            robot.turn(-90)
-        else:
-            robot.turn(90)
         robot.drive(900, 0)
+    if touchSensor.pressed():
+        wait(100)
+        robot.turn(90)
 
 # Server setup, this was in the provided code rather than being custom.
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -191,7 +183,6 @@ try:
         ):
             wait_green = False
             to_pickup = True
-
             ev3.speaker.beep(frequency=1000, duration=500)
 
         # RED STOP SIGNS
